@@ -1,8 +1,4 @@
 require('dotenv').config();
-
-console.log("DEBUG: Iniciando servidor...");
-console.log("DEBUG: MONGO_URI existe?", !!process.env.MONGO_URI);
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -13,31 +9,32 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Importar Rutas (Fijate que los puntos "../" hacen que suba un nivel a la raíz)
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/sponsors', require('./routes/sponsors'));
-app.use('/api/slides', require('./routes/slides'));
+// --- RUTA DE TEST RÁPIDA ---
+app.get('/api/test', (req, res) => res.json({ status: "ok" }));
 
-app.get('/', (req, res) => {
-    res.send('✅ El servidor está funcionando');
-});
+// --- IMPORTACIÓN DE RUTAS ---
+// Usamos try/catch para saber si una ruta está rompiendo el inicio del servidor
+try {
+    app.use('/api/auth', require('./routes/auth'));
+    app.use('/api/sponsors', require('./routes/sponsors'));
+    app.use('/api/slides', require('./routes/slides'));
+} catch (err) {
+    console.error("❌ Error cargando rutas:", err);
+}
 
-// Función de conexión a DB
+// Función de conexión robusta
 const connectDB = async () => {
-    // Si ya estamos conectados, no hacemos nada
     if (mongoose.connection.readyState >= 1) return;
+    return await mongoose.connect(process.env.MONGO_URI);
+};
 
-    // VERIFICACIÓN CRÍTICA:
-    if (!process.env.MONGO_URI) {
-        console.error("❌ ERROR CRÍTICO: MONGO_URI no está definido en las variables de entorno.");
-        throw new Error("MONGO_URI es necesario");
-    }
-
+// Handler para Vercel
+module.exports = async (req, res) => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log("✅ Conectado a MongoDB");
-    } catch (error) {
-        console.error("❌ Error de conexión:", error);
-        throw error;
+        await connectDB();
+        return app(req, res);
+    } catch (err) {
+        console.error("❌ Error en el handler:", err);
+        res.status(500).json({ error: "Fallo en la función", details: err.message });
     }
 };
