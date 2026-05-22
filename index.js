@@ -10,9 +10,9 @@ app.use(cors());
 app.use(express.json());
 
 // Importar Rutas (Fijate que los puntos "../" hacen que suba un nivel a la raíz)
-app.use('/api/auth', require('../routes/auth'));
-app.use('/api/sponsors', require('../routes/sponsors'));
-app.use('/api/slides', require('../routes/slides'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/sponsors', require('./routes/sponsors'));
+app.use('/api/slides', require('./routes/slides'));
 
 app.get('/', (req, res) => {
     res.send('✅ El servidor está funcionando');
