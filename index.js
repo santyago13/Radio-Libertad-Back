@@ -1,7 +1,11 @@
+require('dotenv').config();
+
+console.log("DEBUG: Iniciando servidor...");
+console.log("DEBUG: MONGO_URI existe?", !!process.env.MONGO_URI);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 
@@ -20,26 +24,20 @@ app.get('/', (req, res) => {
 
 // Función de conexión a DB
 const connectDB = async () => {
+    // Si ya estamos conectados, no hacemos nada
     if (mongoose.connection.readyState >= 1) return;
-    await mongoose.connect(process.env.MONGO_URI);
+
+    // VERIFICACIÓN CRÍTICA:
+    if (!process.env.MONGO_URI) {
+        console.error("❌ ERROR CRÍTICO: MONGO_URI no está definido en las variables de entorno.");
+        throw new Error("MONGO_URI es necesario");
+    }
+
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log("✅ Conectado a MongoDB");
+    } catch (error) {
+        console.error("❌ Error de conexión:", error);
+        throw error;
+    }
 };
-
-// --- LÓGICA DE UNIFICACIÓN ---
-// Si estamos en Vercel, solo exportamos la app.
-// Si estamos en local (no existe la variable VERCEL), levantamos el servidor.
-
-if (process.env.VERCEL) {
-    // Modo Vercel: Conectamos antes de que llegue la petición
-    module.exports = async (req, res) => {
-        await connectDB();
-        app(req, res);
-    };
-} else {
-    // Modo Local: Levantamos el servidor como siempre
-    const PORT = process.env.PORT || 5000;
-    connectDB().then(() => {
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor local corriendo en http://localhost:${PORT}`);
-        });
-    });
-}
