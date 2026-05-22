@@ -5,7 +5,11 @@ const cors = require('cors');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // Esto permite que CUALQUIER dominio consulte tu API
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Tus rutas
