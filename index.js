@@ -8,24 +8,32 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// IMPORTANTE: Asegúrate de que estos archivos existan en ../routes/
-app.use('/api/auth', require('../routes/auth'));
-app.use('/api/sponsors', require('../routes/sponsors'));
-app.use('/api/slides', require('../routes/slides'));
+// Tus rutas
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/sponsors', require('./routes/sponsors'));
+app.use('/api/slides', require('./routes/slides'));
 
 app.get('/api/test', (req, res) => res.json({ status: "ok" }));
 
+// CONEXIÓN A DB
 const connectDB = async () => {
     if (mongoose.connection.readyState >= 1) return;
     await mongoose.connect(process.env.MONGO_URI);
 };
 
-module.exports = async (req, res) => {
-    try {
+// --- EL MODO HÍBRIDO ---
+if (process.env.VERCEL) {
+    // Si estamos en Vercel, exportamos el handler
+    module.exports = async (req, res) => {
         await connectDB();
         return app(req, res);
-    } catch (err) {
-        console.error("❌ Error interno:", err);
-        res.status(500).json({ error: "Fallo en el servidor", details: err.message });
-    }
-};
+    };
+} else {
+    // Si estamos en local, arrancamos el servidor manualmente
+    const PORT = process.env.PORT || 5000;
+    connectDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor local corriendo en http://localhost:${PORT}`);
+        });
+    });
+}
